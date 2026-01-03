@@ -39,31 +39,26 @@ const resolvers = {
       return await Employee.findById(id);
     },
 
-    me: async (_, __, context) => {
-      checkAuth(context);
+me: async (_, __, context) => {
+  checkAuth(context);
+  const user = await User.findById(context.user.userId);
+  if (!user) throw new Error("No user found");
 
-      // Get logged-in user
-      const user = await User.findById(context.user.userId);
-      if (!user) throw new Error("No user found");
+  const employee = await Employee.findOne({ email: user.email });
 
-      // Get corresponding employee info
-      const employee = await Employee.findOne({ email: user.email });
-      if (!employee) throw new Error("Employee not found");
-
-      return {
-        id: user.id,
-        email: user.email,
-        role: user.role,                  // system role
-        name: employee.name,
-        age: employee.age,
-        department: employee.department,
-        employeeRole: employee.role,      // employee role
-        salary: employee.salary,
-        joinDate: employee.joinDate ? employee.joinDate.toISOString() : null
-      };
-    }
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,            // system role
+    name: employee?.name || "-", 
+    age: employee?.age || null,
+    department: employee?.department || "-",
+    employeeRole: employee?.role || "-",
+    salary: employee?.salary || null,
+    joinDate: employee?.joinDate ? employee.joinDate.toISOString() : null
+  };
+}
   },
-
   Mutation: {
     login: async (_, { email, password }) => {
       const user = await User.findOne({ email });
