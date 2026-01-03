@@ -55,9 +55,12 @@ me: async (_, __, context) => {
     department: employee?.department || "-",
     employeeRole: employee?.role || "-",
     salary: employee?.salary || null,
-    joinDate: employee?.joinDate ? employee.joinDate.toISOString() : null
+    joinDate: employee?.joinDate
+      ? new Date(employee.joinDate).toISOString() // safely convert string or Date
+      : null
   };
 }
+
   },
   Mutation: {
     login: async (_, { email, password }) => {
@@ -80,45 +83,49 @@ me: async (_, __, context) => {
       return true;
     },
 
-    addEmployee: async (_, { input }, context) => {
-      checkAuth(context);
-      checkAdmin(context);
+addEmployee: async (_, { input }, context) => {
+  checkAuth(context);
+  checkAdmin(context);
 
-      try {
-        const existingEmployee = await Employee.findOne({
-          $or: [{ name: input.name }, { email: input.email }]
-        });
+  try {
+    // prevent duplicate employee
+    const existingEmployee = await Employee.findOne({
+      $or: [{ name: input.name }, { email: input.email }]
+    });
 
-        if (existingEmployee) throw new Error("Employee with same name or email already exists");
+    if (existingEmployee) throw new Error("Employee with same name or email already exists");
 
-        const existingUser = await User.findOne({ email: input.email });
-        if (existingUser) throw new Error("User with this email already exists");
+    const existingUser = await User.findOne({ email: input.email });
+    if (existingUser) throw new Error("User with this email already exists");
 
-        const employee = await Employee.create({
-          name: input.name.trim(),
-          email: input.email.toLowerCase().trim(),
-          age: input.age,
-          department: input.department,
-          role: input.role,
-          salary: input.salary,
-          joinDate: input.joinDate
-        });
+    // Create Employee record
+    const employee = await Employee.create({
+      name: input.name.trim(),
+      email: input.email.toLowerCase().trim(),
+      age: input.age,
+      department: input.department,
+      role: input.role, // job title, free text
+      salary: input.salary,
+      joinDate: input.joinDate
+    });
 
-        await User.create({
-          email: input.email.toLowerCase().trim(),
-          password: input.password,
-          role: "employee"
-        });
+    // Create User record with fixed system role = "employee"
+    await User.create({
+      email: input.email.toLowerCase().trim(),
+      password: input.password,
+      role: "employee"  // <--- always employee, ignore input.role
+    });
 
-        return employee;
-      } catch (err) {
-        if (err.code === 11000) {
-          if (err.keyPattern?.email) throw new Error("Email already exists");
-          if (err.keyPattern?.name) throw new Error("Employee name already exists");
-        }
-        throw new Error(err.message);
-      }
-    },
+    return employee;
+  } catch (err) {
+    if (err.code === 11000) {
+      if (err.keyPattern?.email) throw new Error("Email already exists");
+      if (err.keyPattern?.name) throw new Error("Employee name already exists");
+    }
+    throw new Error(err.message);
+  }
+},
+
 
     updateEmployee: async (_, { id, input }, context) => {
       checkAuth(context);
