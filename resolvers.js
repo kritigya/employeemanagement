@@ -124,12 +124,19 @@ updateEmployee: async (_, { id, input }, context) => {
     { new: true, runValidators: false }
   );
 },
+deleteEmployee: async (_, { id }, context) => {
+  checkAuth(context);
+  checkAdmin(context);
 
-    deleteEmployee: async (_, { id }, context) => {
-      checkAuth(context);
-      checkAdmin(context);
-      return await Employee.findByIdAndDelete(id);
-    },
+  const employee = await Employee.findById(id);
+  if (!employee) throw new Error("Employee not found");
+
+  await User.findOneAndDelete({ email: employee.email }); // 🔥 remove login user
+  await Employee.findByIdAndDelete(id);
+
+  return employee;
+},
+
 
     flagEmployee: async (_, { id }, context) => {
       checkAuth(context);
