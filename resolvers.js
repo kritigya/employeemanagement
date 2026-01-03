@@ -39,13 +39,28 @@ const resolvers = {
       return await Employee.findById(id);
     },
 
-    me: async (_, __, context) => {
+   me: async (_, __, context) => {
       checkAuth(context);
       const user = await User.findById(context.user.userId);
       if (!user) throw new Error("No user found");
-      return user;
-    },
-  },
+
+      const employee = await Employee.findOne({ email: user.email });
+      if (!employee) throw new Error("Employee not found");
+
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: employee.name,
+        age: employee.age,
+        department: employee.department,
+        roleName: employee.role,
+        salary: employee.salary,
+        joinDate: employee.joinDate
+      };
+    }
+  }, // <-- make sure Query ends here, no trailing comma errors
+
 
   Mutation: {
     login: async (_, { email, password }) => {
