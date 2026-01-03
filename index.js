@@ -8,7 +8,15 @@ const typeDefs = require('./schema');
 const resolvers = require('./resolvers');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://employeemanagement-production-71fd.up.railway.app"
+  ],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET", "POST", "OPTIONS"]
+}));
 
 // Function to extract user from the token
 const getUser = (token) => {
@@ -26,11 +34,12 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }) => {
-    const token = req.headers.authorization || '';
-    const user = getUser(token.replace('Bearer ', ''));
-    return { user };
+    const token = req.headers.authorization || "";
+    const user = getUser(token.replace("Bearer ", ""));
+    return { user, req };   // 🔥 req ADDED HERE
   },
 });
+
 
 // Function to start the server and connect to MongoDB
 const startServer = async () => {

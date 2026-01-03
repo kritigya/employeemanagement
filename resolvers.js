@@ -115,11 +115,15 @@ const resolvers = {
       }
     },
 
-    updateEmployee: async (_, { id, input }, context) => {
-      checkAuth(context);
-      checkAdmin(context);
-      return await Employee.findByIdAndUpdate(id, input, { new: true });
-    },
+updateEmployee: async (_, { id, input }, context) => {
+  checkAuth(context);
+  checkAdmin(context);
+  return await Employee.findByIdAndUpdate(
+    id,
+    { $set: input },
+    { new: true, runValidators: false }
+  );
+},
 
     deleteEmployee: async (_, { id }, context) => {
       checkAuth(context);

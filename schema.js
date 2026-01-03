@@ -13,16 +13,28 @@ module.exports = gql`
     flagged: Boolean
   }
 
-  input EmployeeInput {
-    name: String!
-    email: String!
-    password: String!
-    age: Int
-    department: String
-    role: String
-    salary: Int
-    joinDate: String
-  }
+ input CreateEmployeeInput {
+  name: String!
+  email: String!
+  password: String!
+  age: Int
+  department: String
+  role: String
+  salary: Int
+  joinDate: String
+}
+
+input UpdateEmployeeInput {
+  name: String
+  email: String
+  age: Int
+  department: String
+  role: String
+  salary: Int
+  joinDate: String
+  flagged: Boolean
+}
+
 
   type EmployeePage {
     data: [Employee]
@@ -49,8 +61,8 @@ module.exports = gql`
 
   type Mutation {
     login(email: String!, password: String!): AuthPayload
-    addEmployee(input: EmployeeInput!): Employee
-    updateEmployee(id: ID!, input: EmployeeInput): Employee
+  addEmployee(input: CreateEmployeeInput!): Employee
+updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee
     deleteEmployee(id: ID!): Employee
     flagEmployee(id: ID!): Employee
     logout: Boolean
