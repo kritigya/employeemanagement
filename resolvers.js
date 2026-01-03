@@ -39,28 +39,30 @@ const resolvers = {
       return await Employee.findById(id);
     },
 
-   me: async (_, __, context) => {
+    me: async (_, __, context) => {
       checkAuth(context);
+
+      // Get logged-in user
       const user = await User.findById(context.user.userId);
       if (!user) throw new Error("No user found");
 
+      // Get corresponding employee info
       const employee = await Employee.findOne({ email: user.email });
       if (!employee) throw new Error("Employee not found");
 
       return {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: user.role,                  // system role
         name: employee.name,
         age: employee.age,
         department: employee.department,
-        roleName: employee.role,
+        employeeRole: employee.role,      // employee role
         salary: employee.salary,
-        joinDate: employee.joinDate
+        joinDate: employee.joinDate ? employee.joinDate.toISOString() : null
       };
     }
-  }, // <-- make sure Query ends here, no trailing comma errors
-
+  },
 
   Mutation: {
     login: async (_, { email, password }) => {
@@ -83,26 +85,19 @@ const resolvers = {
       return true;
     },
 
-    // 🔥 FIXED ADD EMPLOYEE
     addEmployee: async (_, { input }, context) => {
       checkAuth(context);
       checkAdmin(context);
 
       try {
-        // prevent duplicate employee
         const existingEmployee = await Employee.findOne({
           $or: [{ name: input.name }, { email: input.email }]
         });
 
-        if (existingEmployee) {
-          throw new Error("Employee with same name or email already exists");
-        }
+        if (existingEmployee) throw new Error("Employee with same name or email already exists");
 
-        // prevent duplicate login
         const existingUser = await User.findOne({ email: input.email });
-        if (existingUser) {
-          throw new Error("User with this email already exists");
-        }
+        if (existingUser) throw new Error("User with this email already exists");
 
         const employee = await Employee.create({
           name: input.name.trim(),
@@ -130,32 +125,34 @@ const resolvers = {
       }
     },
 
-updateEmployee: async (_, { id, input }, context) => {
-  checkAuth(context);
-  checkAdmin(context);
-  return await Employee.findByIdAndUpdate(
-    id,
-    { $set: input },
-    { new: true, runValidators: false }
-  );
-},
-deleteEmployee: async (_, { id }, context) => {
-  checkAuth(context);
-  checkAdmin(context);
+    updateEmployee: async (_, { id, input }, context) => {
+      checkAuth(context);
+      checkAdmin(context);
 
-  const employee = await Employee.findById(id);
-  if (!employee) throw new Error("Employee not found");
+      return await Employee.findByIdAndUpdate(
+        id,
+        { $set: input },
+        { new: true, runValidators: false }
+      );
+    },
 
-  await User.findOneAndDelete({ email: employee.email }); // 🔥 remove login user
-  await Employee.findByIdAndDelete(id);
+    deleteEmployee: async (_, { id }, context) => {
+      checkAuth(context);
+      checkAdmin(context);
 
-  return employee;
-},
+      const employee = await Employee.findById(id);
+      if (!employee) throw new Error("Employee not found");
 
+      await User.findOneAndDelete({ email: employee.email });
+      await Employee.findByIdAndDelete(id);
+
+      return employee;
+    },
 
     flagEmployee: async (_, { id }, context) => {
       checkAuth(context);
       checkAdmin(context);
+
       const employee = await Employee.findById(id);
       employee.flagged = !employee.flagged;
       return await employee.save();
